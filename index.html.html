@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>退件入库弹窗</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 弹窗遮罩与主体 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-container {
+            width: 900px;
+            max-width: 95vw;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 头部 */
+        .modal-header {
+            padding: 16px 24px;
+            background: #fafafa;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 16px;
+            color: #1f1f1f;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #8c8c8c;
+        }
+
+        .close-btn:hover {
+            color: #262626;
+        }
+
+        /* 内容区 */
+        .modal-body {
+            padding: 20px 24px;
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #262626;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 14px;
+            background: #1890ff;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+
+        /* 区域1: 搜索与订单基础信息 */
+        .scan-box {
+            background: #f7f9fc;
+            border: 1px dashed #adc6ff;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .scan-input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .scan-input-group input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            outline: none;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .scan-input-group input:focus {
+            border-color: #40a9ff;
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            font-size: 13px;
+            color: #595959;
+            background: #ffffff;
+            padding: 10px 12px;
+            border-radius: 4px;
+            border: 1px solid #f0f0f0;
+        }
+
+        .info-grid span strong {
+            color: #262626;
+        }
+
+        /* 区域2: 明细表格 */
+        .table-section {
+            margin-bottom: 20px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .data-table th {
+            background: #fafafa;
+            color: #595959;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #262626;
+        }
+
+        .data-table input[type="number"], .data-table select, .data-table input[type="text"] {
+            width: 100%;
+            padding: 4px 8px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        /* 区域3: 原因与备注 */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            color: #595959;
+        }
+
+        .form-group select, .form-group textarea {
+            padding: 8px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            height: 60px;
+        }
+
+        /* 底部操作 */
+        .modal-footer {
+            padding: 12px 24px;
+            background: #fafafa;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #595959;
+        }
+
+        .footer-right {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 按钮通用样式 */
+        .btn {
+            padding: 6px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            border: 1px solid #d9d9d9;
+            background: #ffffff;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            border-color: #40a9ff;
+            color: #40a9ff;
+        }
+
+        .btn-primary {
+            background: #1890ff;
+            color: #ffffff;
+            border-color: #1890ff;
+        }
+
+        .btn-primary:hover {
+            background: #40a9ff;
+            border-color: #40a9ff;
+            color: #ffffff;
+        }
+
+        .tag-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            background: #e6f7ff;
+            color: #1890ff;
+            border: 1px solid #91d5ff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="modal-overlay">
+        <div class="modal-container">
+            <!-- 弹窗头部 -->
+            <div class="modal-header">
+                <h3>退件入库操作</h3>
+                <button class="close-btn">&times;</button>
+            </div>
+
+            <!-- 弹窗主体内容 -->
+            <div class="modal-body">
+                <!-- 1. 扫描与基础信息 -->
+                <div class="scan-box">
+                    <div class="scan-input-group">
+                        <input type="text" id="trackingInput" placeholder="请扫描或输入跟踪号 / 订单号 / 物流商单号 (按 Enter 键快速检索)" autofocus>
+                        <button class="btn btn-primary" onclick="handleSearch()">检索</button>
+                        <button class="btn" onclick="handleReset()">重置</button>
+                    </div>
+                    <div class="info-grid">
+                        <span>关联订单：<strong id="orderNo">A260914046933</strong></span>
+                        <span>发货仓库：<strong>谷仓澳洲悉尼仓库</strong></span>
+                        <span>买家账号：<strong>TEE4</strong></span>
+                        <span>退件状态：<span class="tag-status">待入库</span></span>
+                    </div>
+                </div>
+
+                <!-- 2. 商品核对明细 -->
+                <div class="table-section">
+                    <div class="section-title">商品明细核对</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;">#</th>
+                                <th style="width: 140px;">SKU / 条码</th>
+                                <th>商品名称</th>
+                                <th style="width: 80px;">预发数量</th>
+                                <th style="width: 90px;">实收数量</th>
+                                <th style="width: 130px;">商品状态</th>
+                                <th style="width: 150px;">备注</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>SKU-AU-88301</td>
+                                <td>智能无线蓝牙耳机 (黑色)</td>
+                                <td>1</td>
+                                <td><input type="number" value="1" min="0"></td>
+                                <td>
+                                    <select>
+                                        <option value="good">良品入库</option>
+                                        <option value="bad">不良品/损坏</option>
+                                    </select>
+                                </td>
+                                <td><input type="text" placeholder="如外包装破损" value="包装完好"></td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>SKU-AU-40912</td>
+                                <td>桌面超细微风扇 (白色)</td>
+                                <td>2</td>
+                                <td><input type="number" value="2" min="0"></td>
+                                <td>
+                                    <select>
+                                        <option value="bad">不良品/损坏</option>
+                                        <option value="good">良品入库</option>
+                                    </select>
+                                </td>
+                                <td><input type="text" placeholder="外包装破损" value="外包装破损"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 3. 处理原因与分类 -->
+                <div class="section-title">退件处理信息</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>退件原因分类</label>
+                        <select>
+                            <option value="fail">配送失败 / 拒收</option>
+                            <option value="buyer">买家退货</option>
+                            <option value="quality">质量问题</option>
+                            <option value="other">其他原因</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>退款/后续处理方式</label>
+                        <select>
+                            <option value="refund">确认退款 / 重新上架</option>
+                            <option value="resend">重发订单</option>
+                            <option value="destroy">销毁/二手处理</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>入库备注说明</label>
+                    <textarea placeholder="请输入详细的退件核对或异常说明..."></textarea>
+                </div>
+            </div>
+
+            <!-- 弹窗底部 -->
+            <div class="modal-footer">
+                <div class="footer-left">
+                    <button class="btn">打印入库单/标签</button>
+                    <label style="margin-left: 12px; cursor: pointer;">
+                        <input type="checkbox" id="autoScan" checked> 自动连续扫码
+                    </label>
+                </div>
+                <div class="footer-right">
+                    <button class="btn">取 消</button>
+                    <button class="btn btn-primary" onclick="submitInbound()">确认退件入库</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 扫码框 Enter 键模拟检索
+        document.getElementById('trackingInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+
+        function handleSearch() {
+            const val = document.getElementById('trackingInput').value.trim();
+            if(!val) {
+                alert('请扫描或输入单号！');
+                return;
+            }
+            alert('检索单号：' + val + '，带出商品数据成功！');
+        }
+
+        function handleReset() {
+            document.getElementById('trackingInput').value = '';
+            document.getElementById('trackingInput').focus();
+        }
+
+        function submitInbound() {
+            alert('退件入库提交成功！');
+            if (document.getElementById('autoScan').checked) {
+                handleReset();
+            }
+        }
+    </script>
+</body>
+</html>
